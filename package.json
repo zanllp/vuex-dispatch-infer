@@ -1,0 +1,10 @@
+{
+  "name": "vuex-dispatch-infer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "typings": "index.d.ts",
+  "license": "MIT",
+  "devDependencies": {
+    "vuex": "^3.6.2"
+  }
+}
