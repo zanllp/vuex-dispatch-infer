@@ -125,3 +125,49 @@ type DispatchOverloadFunc<
     ModuleKeyTuple = UnionToTuple<keyof T>,
     Actions = ModuleKeyTuple extends string[] ? MergeActions<ModulesActions, ModuleKeyTuple> : never
 > = Actions extends ActionDesc[] ? ActionDesc2OverloadFunc<Actions> : never
+
+
+/*************************性能不足时的退化版本***********************************/
+/**
+ * 映射Action函数到Action的描述
+ */
+type MapAction2DispacthTypeLite<C, S extends string | number> = C extends string ? `${S}/${C}` : never
+
+/**
+ * 将所有模块的action函数转成action的描述
+ */
+type GetModuleActionsLite<T extends RequiredModule> =
+{
+  [p in keyof T]:
+  p extends string
+    ? MapAction2DispacthTypeLite<keyof T[p]['actions'], p>
+    : never
+}
+
+/**
+ * 合并一个Stroe里面的所有module的action描述到一个数组
+ *
+ * @param T Store类型
+ * @param keys Store里面所有module的key元组
+ */
+type MergeActionsLite <T extends Record<string, any>, Keys extends any[], R extends string[] = []> =
+Keys['length'] extends 0
+  ? R
+  : Keys extends [infer C, ... infer Rest]
+    ? C extends keyof T
+      ? MergeActionsLite<T, Rest, [...R, T[C]]>
+      : never
+    : R
+
+/**
+ * 使用单个Store的类型生成Store::Dispatch的重载函数类型
+ *
+ * @example
+ * const dispatch = store.dispatch.bind(store) as DispatchOverloadFuncLite<S>
+ */
+export type DispatchOverloadFuncLite<
+    T extends RequiredModule, 
+    ModulesActions = GetModuleActionsLite<T>, 
+    ModuleKeyTuple = UnionToTuple<keyof T>,
+    Actions = ModuleKeyTuple extends any [] ? MergeActionsLite<ModulesActions, ModuleKeyTuple>[number] : never
+> = (type: Actions, payload?: any) => any

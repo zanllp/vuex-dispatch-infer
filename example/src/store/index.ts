@@ -1,13 +1,7 @@
-# vuex-dispatch-infer
-## Install
-`yarn add vuex-dispatch-infer --dev`
-## Vue3 Example
-[Click here](./example)
-```typescript
 import { createStore } from 'vuex'
 import cart from './modules/cart'
 import products from './modules/products'
-import { DispatchOverloadFunc } from 'vuex-dispatch-infer'
+import { DispatchOverloadFunc, DispatchOverloadFuncLite } from 'vuex-dispatch-infer'
 
 const modules = {
     cart,
@@ -21,6 +15,6 @@ const store = createStore<RS>({
 
 export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<RS> 
 
-```
-## Preview
-![image](https://user-images.githubusercontent.com/25872019/105981363-f3855e00-60d0-11eb-92bc-997273678b8e.png)
+export const dispatchl = store.dispatch.bind(store) as DispatchOverloadFuncLite<RS> 
+
+export default store
