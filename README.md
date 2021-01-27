@@ -23,4 +23,6 @@ export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<RS>
 
 ```
 ## Preview
-![image](https://user-images.githubusercontent.com/25872019/105981363-f3855e00-60d0-11eb-92bc-997273678b8e.png)
+
+![image](https://user-images.githubusercontent.com/25872019/105982567-68a56300-60d2-11eb-955f-c9bcf4f21695.png)
+
