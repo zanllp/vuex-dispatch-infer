@@ -1,4 +1,4 @@
-# vuex-ts-improve-example
+# vuex-dispatch-infer-example
 
 ## Project setup
 ```
