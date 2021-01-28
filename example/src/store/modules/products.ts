@@ -1,4 +1,5 @@
 import { ActionContext } from 'vuex'
+import store from '..'
 import shop, { Product } from '../../api/shop'
 
 // initial state
@@ -13,11 +14,15 @@ const getters = {}
 
 // actions
 const actions = {
-  getAllProducts ({ commit }: Action ) {
+  async getAllProducts ({ commit, state }: Action ) {
     shop.getProducts(products => {
       commit('setProducts', products)
     })
-  }
+    return state.all
+  },
+  getone ({ commit, state }: Action, id? : number ) {
+    return state.all.find(p => p.id === id)
+  },
 }
 
 // mutations

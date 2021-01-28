@@ -1,17 +1,25 @@
 import { DispatchOptions } from 'vuex'
 
 type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : never
-
 type Fn = (...args: any) => any
 type Push<T extends any[], E> = [...T, E];
+
+type ActionReduceFn < T, R> = R extends null ? T : R & T
+
 type ActionFn <
     ActionDegenerateralType,
-    ParamsType,
+    ParamsTypeTuple extends any[],
     ReturnType,
-    R = null
-  > = R extends null
-    ? (type: ActionDegenerateralType, payload: ParamsType, options?: DispatchOptions ) => ReturnType
-    : R & ((type: ActionDegenerateralType, payload: ParamsType, options?: DispatchOptions ) => ReturnType)
+    R = null,
+    Payload = ParamsTypeTuple['length'] extends 1 ? never : ParamsTypeTuple[1]
+  > = 
+  ParamsTypeTuple['length'] extends 1 // [ActionContext]
+    ? ActionReduceFn<(type: ActionDegenerateralType, payload?: undefined, options?: DispatchOptions ) => ReturnType, R>
+    : ParamsTypeTuple[1] extends Exclude<Payload, undefined> 
+        // [ActionContext, string|number]
+        ? ActionReduceFn<(type: ActionDegenerateralType, payload: Payload, options?: DispatchOptions ) => ReturnType, R>
+        // [ActionContext, ?string|number]
+        : ActionReduceFn<(type: ActionDegenerateralType, payload?: Payload, options?: DispatchOptions ) => ReturnType, R>
 /**
  * 映射Action函数到Action的描述
  */
@@ -24,14 +32,14 @@ export type MapAction2ActionDesc<
   T['length'] extends 0
     ? Res
     : T['length'] extends 1
-        ? ActionFn<`${ModuleName}/${T[0]}`, Parameters<Actions[T[0]]>[1], ReturnType<Actions[T[0]]>, Res>
+        ? ActionFn<`${ModuleName}/${T[0]}`, Parameters<Actions[T[0]]>, ReturnType<Actions[T[0]]>, Res>
         : T extends [infer C, ... infer Rest]
             ? C extends keyof Actions
                 ? MapAction2ActionDesc<
                     Rest,
                     ModuleName,
                     Actions,
-                    ActionFn<`${ModuleName}/${C}`, Parameters<Actions[C]>[1], ReturnType<Actions[C]>, Res>
+                    ActionFn<`${ModuleName}/${C & string}`, Parameters<Actions[C]>, ReturnType<Actions[C]>, Res>
                   >
                 : never
             : never
@@ -113,7 +121,7 @@ type GetModuleActionsDegenerate<T extends RequiredModule> =
 {
   [p in keyof T]:
   p extends string
-    ? `${keyof T[p]['actions'] & string}/${p}`
+    ? `${p}/${keyof T[p]['actions'] & string}`
     : never
 }
 
