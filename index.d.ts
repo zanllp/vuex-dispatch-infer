@@ -2,31 +2,42 @@ import { DispatchOptions } from 'vuex'
 
 type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : never
 
-
+type Fn = (...args: any) => any
 type Push<T extends any[], E> = [...T, E];
+type ActionFn <
+    ActionDegenerateralType,
+    ParamsType,
+    ReturnType,
+    R = null
+  > = R extends null
+    ? (type: ActionDegenerateralType, payload: ParamsType, options?: DispatchOptions ) => ReturnType
+    : R & ((type: ActionDegenerateralType, payload: ParamsType, options?: DispatchOptions ) => ReturnType)
 /**
  * 映射Action函数到Action的描述
  */
 export type MapAction2ActionDesc<
     T extends Array<any>,
     ModuleName extends string | number,
-    Actions extends Record<string, (...args: any) => any>,
-    Res extends Array<any> = []
+    Actions extends Record<string, Fn>,
+    Res extends Fn | null = null
   > =
   T['length'] extends 0
     ? Res
-    : T extends [infer C, ... infer Rest]
-      ? C extends string | number
-        ? C extends keyof Actions
-            ? MapAction2ActionDesc<Rest, ModuleName, Actions, [
-                [`${ModuleName}/${C}`, Shift<Parameters<Actions[C]>>, ReturnType<Actions[C]> ],
-                ...Res]>
+    : T['length'] extends 1
+        ? ActionFn<`${ModuleName}/${T[0]}`, Parameters<Actions[T[0]]>[1], ReturnType<Actions[T[0]]>, Res>
+        : T extends [infer C, ... infer Rest]
+            ? C extends keyof Actions
+                ? MapAction2ActionDesc<
+                    Rest,
+                    ModuleName,
+                    Actions,
+                    ActionFn<`${ModuleName}/${C}`, Parameters<Actions[C]>[1], ReturnType<Actions[C]>, Res>
+                  >
+                : never
             : never
-        : never
-    : never
 
-export type RequiredModule = Record<string, { actions: Record<string, (...args: any) => any> }>
-
+export type RequiredModule = Record<string, { actions: Record<string, Fn> }>
+ 
 /**
  * 将所有模块的action函数转成action的描述
  */
@@ -48,50 +59,20 @@ export type GetModuleActions<T extends RequiredModule> =
 export type MergeActions <
     T extends Record<string,any>,
     Keys extends any[],
-    R extends string[] = []
+    R extends Fn| null = null
   > =
  Keys['length'] extends 0
-   ? R
-   : Keys extends [infer C, ... infer Rest]
-     ? C extends keyof T
-       ? MergeActions<T, Rest, [...R, ...T[C]]>
-       : never
-     : R
-
-/**
- * action 函数的描述
- * @param ActionLiteralType 即action的函数名，Store::Dispatch的第一个参数type
- * @param ParamsType payload 的类型 ，如果有payload的话，类似[string]，没[]
- * @param ReturnType 返回类型
- */
-type ActionDesc<
-    ActionLiteralType extends string = string,
-    ParamsType extends any[] = any[],
-    ReturnType extends any = any
-  > = [ActionLiteralType, ParamsType, ReturnType]
-
-/**
- * 函数描述转函数
- */
-type ActionDesc2Func <A extends ActionDesc>  =
-  A[1]['length'] extends 0
-    ? (type: A[0], payload?: undefined, options?: DispatchOptions) => A[2]
-    : (type: A[0], payload: A[1][0], options?: DispatchOptions) => A[2]
-
-/**
- * 将所有的action函数的描述合并成一个重载函数
- */
-export type ActionDesc2OverloadFunc <T extends ActionDesc[], Res = ActionDesc2Func<T[0]>> =
-   T['length'] extends 0
-    ? never
-    : T['length'] extends 1
-      ? Res & ActionDesc2Func<T[0]>
-      : Shift<T> extends infer N
-          ? N extends ActionDesc[]
-            ? ActionDesc2OverloadFunc<N , Res & ActionDesc2Func<T[0]>>
+   ? never
+   : Keys['length'] extends 1
+        ? R extends null 
+            ? T[Keys[0]]
+            : R & T[Keys[0]]
+        : Keys extends [infer C, ... infer Rest]
+            ? C extends keyof T
+                ? MergeActions<T, Rest, R extends null ? T[C]: R & T[C]>
+                : never
             : never
-        : never
-
+            
 /**
  * 联合类型转元组 ，利用了重载函数的优先级
  *
@@ -102,6 +83,9 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
 
 type LastOfUnion<T> = UnionToIntersection<T extends any ? () => T : never> extends () => (infer R) ? R : never
 
+/**
+ * 性能消耗巨大尽可能避免使用
+ */
 type UnionToTuple<T, L = LastOfUnion<T>, N = [T] extends [never] ? true : false> =
   true extends N
     ? []
@@ -116,9 +100,8 @@ type UnionToTuple<T, L = LastOfUnion<T>, N = [T] extends [never] ? true : false>
 type DispatchOverloadFunc<
     T extends RequiredModule, 
     ModulesActions = GetModuleActions<T>, 
-    ModuleKeyTuple = UnionToTuple<keyof T>,
-    Actions = ModuleKeyTuple extends string[] ? MergeActions<ModulesActions, ModuleKeyTuple> : never
-> = Actions extends ActionDesc[] ? ActionDesc2OverloadFunc<Actions> : never
+    ModuleKeyTuple = UnionToTuple<keyof T>
+> = ModuleKeyTuple extends string[] ? MergeActions<ModulesActions, ModuleKeyTuple> : never
 
 
 /*************************性能不足时的退化版本***********************************/
@@ -126,7 +109,7 @@ type DispatchOverloadFunc<
 /**
  * 将所有模块的action函数转成action的描述
  */
-type GetModuleActionsLite<T extends RequiredModule> =
+type GetModuleActionsDegenerate<T extends RequiredModule> =
 {
   [p in keyof T]:
   p extends string
@@ -140,12 +123,12 @@ type GetModuleActionsLite<T extends RequiredModule> =
  * @param T Store类型
  * @param keys Store里面所有module的key元组
  */
-type MergeActionsLite <T extends Record<string, any>, Keys extends any[], R extends string[] = []> =
+type MergeActionsDegenerate <T extends Record<string, any>, Keys extends any[], R extends string[] = []> =
 Keys['length'] extends 0
   ? R
   : Keys extends [infer C, ... infer Rest]
     ? C extends keyof T
-      ? MergeActionsLite<T, Rest, [...R, T[C]]>
+      ? MergeActionsDegenerate<T, Rest, [...R, T[C]]>
       : never
     : R
 
@@ -153,11 +136,11 @@ Keys['length'] extends 0
  * 使用单个Store的类型生成Store::Dispatch的重载函数类型
  *
  * @example
- * const dispatch = store.dispatch.bind(store) as DispatchOverloadFuncLite<S>
+ * const dispatch = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<S>
  */
-export type DispatchOverloadFuncLite<
+export type DispatchOverloadFuncDegenerate<
     T extends RequiredModule, 
-    ModulesActions = GetModuleActionsLite<T>, 
+    ModulesActions = GetModuleActionsDegenerate<T>, 
     ModuleKeyTuple = UnionToTuple<keyof T>,
-    Actions = ModuleKeyTuple extends any [] ? MergeActionsLite<ModulesActions, ModuleKeyTuple>[number] : never
+    Actions = ModuleKeyTuple extends any [] ? MergeActionsDegenerate<ModulesActions, ModuleKeyTuple>[number] : never
 > = (type: Actions, payload?: any) => any

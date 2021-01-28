@@ -1,20 +1,24 @@
 import { createStore } from 'vuex'
 import cart from './modules/cart'
 import products from './modules/products'
-import { DispatchOverloadFunc, DispatchOverloadFuncLite } from 'vuex-dispatch-infer'
+import { DispatchOverloadFunc, DispatchOverloadFuncDegenerate } from '../../../'
 
 const modules = {
     cart,
     products
 }
 
-export type RS = typeof modules 
+export type RS = typeof modules
 const store = createStore<RS>({
     modules
 })
-
-export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<RS> 
-
-export const dispatchl = store.dispatch.bind(store) as DispatchOverloadFuncLite<RS> 
-
+export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<RS>
+dispatch('cart/addProductToCart', {
+    id: 2,
+    title: '22',
+    price: 1,
+    inventory: 1
+})
+export const dispatchDegenerate = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<RS>
+dispatchDegenerate('checkout/cart')
 export default store
