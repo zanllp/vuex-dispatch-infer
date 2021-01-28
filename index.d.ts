@@ -18,11 +18,11 @@ export type MapAction2ActionDesc<
     : T extends [infer C, ... infer Rest]
       ? C extends string | number
         ? C extends keyof Actions
-        ? MapAction2ActionDesc<Rest, ModuleName, Actions, [
-          [`${ModuleName}/${C}`, Shift<Parameters<Actions[C]>>, ReturnType<Actions[C]> ],
-           ...Res]>
+            ? MapAction2ActionDesc<Rest, ModuleName, Actions, [
+                [`${ModuleName}/${C}`, Shift<Parameters<Actions[C]>>, ReturnType<Actions[C]> ],
+                ...Res]>
+            : never
         : never
-      : never
     : never
 
 export type RequiredModule = Record<string, { actions: Record<string, (...args: any) => any> }>
@@ -37,6 +37,7 @@ export type GetModuleActions<T extends RequiredModule> =
       ? MapAction2ActionDesc<UnionToTuple<keyof T[p]['actions']>, p, T[p]['actions']>
       : never
 }
+
 
 /**
  * 合并一个Stroe里面的所有module的action描述到一个数组
@@ -91,13 +92,6 @@ export type ActionDesc2OverloadFunc <T extends ActionDesc[], Res = ActionDesc2Fu
             : never
         : never
 
-type FilterNullModule <T extends any[], R extends ActionDesc[] = []> =
-  T extends [infer C, ... infer Rest]
-    ? C extends ActionDesc
-      ? FilterNullModule<Rest, [C, ...R]>
-      : FilterNullModule<Rest, R>
-    : R
-
 /**
  * 联合类型转元组 ，利用了重载函数的优先级
  *
@@ -128,10 +122,6 @@ type DispatchOverloadFunc<
 
 
 /*************************性能不足时的退化版本***********************************/
-/**
- * 映射Action函数到Action的描述
- */
-type MapAction2DispacthTypeLite<C, S extends string | number> = C extends string ? `${S}/${C}` : never
 
 /**
  * 将所有模块的action函数转成action的描述
@@ -140,7 +130,7 @@ type GetModuleActionsLite<T extends RequiredModule> =
 {
   [p in keyof T]:
   p extends string
-    ? MapAction2DispacthTypeLite<keyof T[p]['actions'], p>
+    ? `${keyof T[p]['actions'] & string}/${p}`
     : never
 }
 
