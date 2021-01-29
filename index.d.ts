@@ -4,7 +4,7 @@ type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : neve
 type Fn = (...args: any) => any
 type Push<T extends any[], E> = [...T, E];
 
-type ActionReduceFn < T, R> = R extends null ? T : R & T
+type ActionReduceFn <T, R> = R extends null ? T : R & T
 
 type ActionFn <
     ActionDegenerateralType,
@@ -44,7 +44,7 @@ export type MapAction2ActionDesc<
                 : never
             : never
 
-export type RequiredModule = Record<string, { actions: Record<string, Fn> }>
+export type RequiredModule = Record<string, { actions: Record<string, Fn>, modules?: RequiredModule }>
  
 /**
  * 将所有模块的action函数转成action的描述
@@ -114,14 +114,14 @@ type DispatchOverloadFunc<
 
 /*************************性能不足时的退化版本***********************************/
 
-/**
- * 将所有模块的action函数转成action的描述
- */
 type GetModuleActionsDegenerate<T extends RequiredModule> =
 {
-  [p in keyof T]:
-  p extends string
-    ? `${p}/${keyof T[p]['actions'] & string}`
+  [p in keyof T]: p extends string
+    ? T[p]['modules'] extends infer NextModules
+        ? NextModules extends RequiredModule
+            ? `${p}/${keyof T[p]['actions'] & string}` | `${p}/${DispatchActionsDegenerate<NextModules>}`
+            : `${p}/${keyof T[p]['actions'] & string}`
+        : never
     : never
 }
 
@@ -140,15 +140,17 @@ Keys['length'] extends 0
       : never
     : R
 
-/**
- * 使用单个Store的类型生成Store::Dispatch的重载函数类型
- *
- * @example
- * const dispatch = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<S>
- */
-export type DispatchOverloadFuncDegenerate<
+type DispatchActionsDegenerate<
     T extends RequiredModule, 
     ModulesActions = GetModuleActionsDegenerate<T>, 
     ModuleKeyTuple = UnionToTuple<keyof T>,
     Actions = ModuleKeyTuple extends any [] ? MergeActionsDegenerate<ModulesActions, ModuleKeyTuple>[number] : never
-> = (type: Actions, payload?: any) => any
+> = Actions
+
+/**
+ * 使用单个Store的类型生成Store::Dispatch的重载函数类型，支持无限推导
+ *
+ * @example
+ * const dispatch = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<S>
+ */
+type DispatchOverloadFuncDegenerate<T extends RequiredModule> = (type: DispatchActionsDegenerate<T>, payload?: any) => any

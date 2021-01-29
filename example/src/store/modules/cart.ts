@@ -1,5 +1,6 @@
 import { ActionContext } from 'vuex'
 import shop, { Product } from '../../api/shop'
+import products  from './products'
 import { RS } from '../index'
 
 // initial state
@@ -31,6 +32,7 @@ const getters = {
 }
 // actions
 const actions = {
+    
    checkout ({ commit, state }: Action, products: Product) {
     const savedCartItems = [...state.items]
     commit('setCheckoutStatus', null)
@@ -90,5 +92,9 @@ export default {
   state,
   getters,
   actions,
-  mutations
+  mutations,
+  modules: {
+    child1: products,
+    child2: products
+  }
 }

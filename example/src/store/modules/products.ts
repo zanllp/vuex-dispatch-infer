@@ -1,6 +1,7 @@
 import { ActionContext } from 'vuex'
 import store from '..'
 import shop, { Product } from '../../api/shop'
+import cart from './cart'
 
 // initial state
 const state = () => ({
@@ -42,5 +43,7 @@ export default {
   state,
   getters,
   actions,
-  mutations
+  mutations,
+  modules: {
+  }
 }
