@@ -94,7 +94,7 @@ export default {
   actions,
   mutations,
   modules: {
-    child1: products,
-    child2: products
+    product1: products,
+    product2: products
   }
 }

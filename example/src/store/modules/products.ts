@@ -15,24 +15,24 @@ const getters = {}
 
 // actions
 const actions = {
-  async getAllProducts ({ commit, state }: Action ) {
+  async getAllProducts({ commit, state }: Action) {
     shop.getProducts(products => {
       commit('setProducts', products)
     })
     return state.all
   },
-  getone ({ commit, state }: Action, id? : number ) {
+  getone({ commit, state }: Action, id?: number) {
     return state.all.find(p => p.id === id)
   },
 }
 
 // mutations
 const mutations = {
-  setProducts (state: S, products: Product[]) {
+  setProducts(state: S, products: Product[]) {
     state.all = products
   },
 
-  decrementProductInventory (state: S, { id }: Product) {
+  decrementProductInventory(state: S, { id }: Product) {
     const product = state.all.find(product => product.id === id)
     product!.inventory--
   }
@@ -45,5 +45,12 @@ export default {
   actions,
   mutations,
   modules: {
+    component: {
+      actions: {
+        assembly(_: Action) {
+
+        }
+      }
+    }
   }
 }

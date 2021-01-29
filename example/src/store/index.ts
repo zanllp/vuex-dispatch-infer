@@ -26,5 +26,5 @@ dispatch('products/getAllProducts').then(all => {
 })
 dispatch('products/getone',1)
 export const dispatchDegenerate = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<RS>
-dispatchDegenerate('cart/child2/getAllProducts')
+dispatchDegenerate('cart/product1/component/assembly')
 export default store
