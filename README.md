@@ -4,22 +4,33 @@
 ## Vue3 Example
 [Click here](./example)
 ```typescript
-import { createStore } from 'vuex'
-import cart from './modules/cart'
-import products from './modules/products'
-import { DispatchOverloadFunc } from 'vuex-dispatch-infer'
-
 const modules = {
     cart,
     products
 }
 
-export type RS = typeof modules 
+type Modules = typeof modules
+type RS = Modules2RootState<Modules>
 const store = createStore<RS>({
     modules
 })
 
-export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<RS> 
+export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<Modules>
+
+dispatch('cart/addProductToCart', {
+    id: 2,
+    title: '22',
+    price: 1,
+    inventory: 1
+})
+
+dispatch('products/getAllProducts').then(all => {
+    console.log(all.map(prod => prod.title).join())
+})
+dispatch('products/getone', 1)
+
+export const dispatchDegenerate = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<Modules>
+dispatchDegenerate('cart/product2/component/assembly')
 
 ```
 ## Preview

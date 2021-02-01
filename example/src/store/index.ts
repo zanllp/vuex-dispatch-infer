@@ -1,18 +1,20 @@
-import { createStore } from 'vuex'
+import { createStore, Module } from 'vuex'
 import cart from './modules/cart'
 import products from './modules/products'
-import { DispatchOverloadFunc, DispatchOverloadFuncDegenerate, ActionFn } from '../../../'
+import { DispatchOverloadFunc, DispatchOverloadFuncDegenerate, Modules2RootState } from '../../../'
 
 const modules = {
     cart,
     products
 }
 
-export type RS = typeof modules
+type Modules = typeof modules
+type RS = Modules2RootState<Modules>
 const store = createStore<RS>({
     modules
 })
-export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<RS>
+console.log(store.state.cart.product2.component.ee)
+export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<Modules>
 
 dispatch('cart/addProductToCart', {
     id: 2,
@@ -24,7 +26,8 @@ dispatch('cart/addProductToCart', {
 dispatch('products/getAllProducts').then(all => {
     console.log(all.map(prod => prod.title).join())
 })
-dispatch('products/getone',1)
-export const dispatchDegenerate = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<RS>
-dispatchDegenerate('cart/product1/component/assembly')
+dispatch('products/getone', 1)
+export const dispatchDegenerate = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<Modules>
+dispatchDegenerate('cart/product2/component/assembly')
+
 export default store

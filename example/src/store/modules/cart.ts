@@ -1,7 +1,6 @@
 import { ActionContext } from 'vuex'
 import shop, { Product } from '../../api/shop'
 import products  from './products'
-import { RS } from '../index'
 
 // initial state
 // shape: [{ id, quantity }]

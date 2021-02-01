@@ -1,4 +1,4 @@
-import { DispatchOptions } from 'vuex'
+import { DispatchOptions, Module } from 'vuex'
 
 type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : never
 type Fn = (...args: any) => any
@@ -12,10 +12,10 @@ type ActionFn <
     ReturnType,
     R = null,
     Payload = ParamsTypeTuple['length'] extends 1 ? never : ParamsTypeTuple[1]
-  > = 
+  > =
   ParamsTypeTuple['length'] extends 1 // [ActionContext]
     ? ActionReduceFn<(type: ActionDegenerateralType, payload?: undefined, options?: DispatchOptions ) => ReturnType, R>
-    : ParamsTypeTuple[1] extends Exclude<Payload, undefined> 
+    : ParamsTypeTuple[1] extends Exclude<Payload, undefined>
         // [ActionContext, string|number]
         ? ActionReduceFn<(type: ActionDegenerateralType, payload: Payload, options?: DispatchOptions ) => ReturnType, R>
         // [ActionContext, ?string|number]
@@ -45,7 +45,7 @@ export type MapAction2ActionDesc<
             : never
 
 export type RequiredModule = Record<string, { actions: Record<string, Fn>, modules?: RequiredModule }>
- 
+
 /**
  * 将所有模块的action函数转成action的描述
  */
@@ -72,7 +72,7 @@ export type MergeActions <
  Keys['length'] extends 0
    ? never
    : Keys['length'] extends 1
-        ? R extends null 
+        ? R extends null
             ? T[Keys[0]]
             : R & T[Keys[0]]
         : Keys extends [infer C, ... infer Rest]
@@ -80,7 +80,7 @@ export type MergeActions <
                 ? MergeActions<T, Rest, R extends null ? T[C]: R & T[C]>
                 : never
             : never
-            
+
 /**
  * 联合类型转元组 ，利用了重载函数的优先级
  *
@@ -106,8 +106,8 @@ type UnionToTuple<T, L = LastOfUnion<T>, N = [T] extends [never] ? true : false>
  * export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<S>
  */
 type DispatchOverloadFunc<
-    T extends RequiredModule, 
-    ModulesActions = GetModuleActions<T>, 
+    T extends RequiredModule,
+    ModulesActions = GetModuleActions<T>,
     ModuleKeyTuple = UnionToTuple<keyof T>
 > = ModuleKeyTuple extends string[] ? MergeActions<ModulesActions, ModuleKeyTuple> : never
 
@@ -141,11 +141,10 @@ Keys['length'] extends 0
     : R
 
 type DispatchActionsDegenerate<
-    T extends RequiredModule, 
-    ModulesActions = GetModuleActionsDegenerate<T>, 
-    ModuleKeyTuple = UnionToTuple<keyof T>,
-    Actions = ModuleKeyTuple extends any [] ? MergeActionsDegenerate<ModulesActions, ModuleKeyTuple>[number] : never
-> = Actions
+    T extends RequiredModule,
+    ModulesActions = GetModuleActionsDegenerate<T>,
+    ModuleKeyTuple = UnionToTuple<keyof T>
+> = ModuleKeyTuple extends any [] ? MergeActionsDegenerate<ModulesActions, ModuleKeyTuple>[number] : never
 
 /**
  * 使用单个Store的类型生成Store::Dispatch的重载函数类型，支持无限推导
@@ -154,3 +153,19 @@ type DispatchActionsDegenerate<
  * const dispatch = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<S>
  */
 type DispatchOverloadFuncDegenerate<T extends RequiredModule> = (type: DispatchActionsDegenerate<T>, payload?: any) => any
+
+type StateRequiredModule = Record<string, { modules?: RequiredModule, state?: any }>
+type Modules2RootState <T extends StateRequiredModule> = {
+  [p in keyof T]: T[p]['state'] extends infer U
+      ? U extends undefined
+          ? never
+          : (U extends Fn
+              ? ReturnType<U>
+              : U) &
+              (T[p]['modules'] extends infer M
+                ? M extends StateRequiredModule
+                  ? Modules2RootState<M>
+                  : {}
+                : never)
+      : never
+}
