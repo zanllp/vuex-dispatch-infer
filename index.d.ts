@@ -4,7 +4,11 @@ type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : neve
 type Fn = (...args: any) => any
 type Push<T extends any[], E> = [...T, E];
 
+type Obj<V = string, k = string> = Record<K,V>
+
 type ActionReduceFn <T, R> = R extends null ? T : R & T
+
+type ForceAsync<T> = T extends Promise<any> ? T : Promise<T>
 
 type ActionFn <
     ActionDegenerateralType,
@@ -14,19 +18,19 @@ type ActionFn <
     Payload = ParamsTypeTuple['length'] extends 1 ? never : ParamsTypeTuple[1]
   > =
   ParamsTypeTuple['length'] extends 1 // [ActionContext]
-    ? ActionReduceFn<(type: ActionDegenerateralType, payload?: undefined, options?: DispatchOptions ) => ReturnType, R>
+    ? ActionReduceFn<(type: ActionDegenerateralType, payload?: undefined, options?: DispatchOptions ) => ForceAsync<ReturnType>, R>
     : ParamsTypeTuple[1] extends Exclude<Payload, undefined>
         // [ActionContext, string|number]
-        ? ActionReduceFn<(type: ActionDegenerateralType, payload: Payload, options?: DispatchOptions ) => ReturnType, R>
+        ? ActionReduceFn<(type: ActionDegenerateralType, payload: Payload, options?: DispatchOptions ) => ForceAsync<ReturnType>, R>
         // [ActionContext, ?string|number]
-        : ActionReduceFn<(type: ActionDegenerateralType, payload?: Payload, options?: DispatchOptions ) => ReturnType, R>
+        : ActionReduceFn<(type: ActionDegenerateralType, payload?: Payload, options?: DispatchOptions ) => ForceAsync<ReturnType>, R>
 /**
  * 映射Action函数到Action的描述
  */
-export type MapAction2ActionDesc<
+type MapAction2ActionDesc<
     T extends Array<any>,
     ModuleName extends string | number,
-    Actions extends Record<string, Fn>,
+    Actions extends Obj<Fn>,
     Res extends Fn | null = null
   > =
   T['length'] extends 0
@@ -44,7 +48,7 @@ export type MapAction2ActionDesc<
                 : never
             : never
 
-export type RequiredModule = Record<string, { actions: Record<string, Fn>, modules?: RequiredModule }>
+export type RequiredModule = Obj<{ actions: Obj<Fn>, modules?: RequiredModule }>
 
 /**
  * 将所有模块的action函数转成action的描述
@@ -57,6 +61,16 @@ export type GetModuleActions<T extends RequiredModule> =
       : never
 }
 
+type GetModuleActions2<T extends RequiredModule> =
+{
+  [p in keyof T]: p extends string
+    ? T[p]['modules'] extends infer NextModules
+        ? NextModules extends RequiredModule
+            ? `${p}/${keyof T[p]['actions'] & string}` | `${p}/${DispatchActionsDegenerate<NextModules>}`
+            : MapAction2ActionDesc<UnionToTuple<keyof T[p]['actions']>, p, T[p]['actions']>
+        : never
+    : never
+}
 
 /**
  * 合并一个Stroe里面的所有module的action描述到一个数组
@@ -67,7 +81,7 @@ export type GetModuleActions<T extends RequiredModule> =
 export type MergeActions <
     T extends Record<string,any>,
     Keys extends any[],
-    R extends Fn| null = null
+    R extends Fn | null = null
   > =
  Keys['length'] extends 0
    ? never
@@ -131,7 +145,7 @@ type GetModuleActionsDegenerate<T extends RequiredModule> =
  * @param T Store类型
  * @param keys Store里面所有module的key元组
  */
-type MergeActionsDegenerate <T extends Record<string, any>, Keys extends any[], R extends string[] = []> =
+type MergeActionsDegenerate <T extends Obj<any>, Keys extends any[], R extends string[] = []> =
 Keys['length'] extends 0
   ? R
   : Keys extends [infer C, ... infer Rest]
@@ -154,7 +168,7 @@ type DispatchActionsDegenerate<
  */
 type DispatchOverloadFuncDegenerate<T extends RequiredModule> = (type: DispatchActionsDegenerate<T>, payload?: any) => any
 
-type StateRequiredModule = Record<string, { modules?: RequiredModule, state?: any }>
+type StateRequiredModule = Obj<{ modules?: RequiredModule, state?: any }>
 type Modules2RootState <T extends StateRequiredModule> = {
   [p in keyof T]: T[p]['state'] extends infer U
       ? U extends undefined
@@ -169,3 +183,12 @@ type Modules2RootState <T extends StateRequiredModule> = {
                 : never)
       : never
 }
+
+type MergeCommit<Mutations extends Obj<Fn>, Keys = UnionToTuple<keyof Mutations>, R = null> =
+Keys extends [infer C, ...infer Rest]
+    ? C extends keyof Mutations
+      ? MergeCommit<Mutations, Rest, ActionReduceFn<(type: C, arg: Parameters<Mutations[C]>[1]) => ReturnType<Mutations[C]>, R>>
+      : never
+    : R
+    
+type ActionContextInfer<Commit> = { commit: MergeCommit<Commit> }
