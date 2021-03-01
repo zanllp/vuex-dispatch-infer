@@ -4,7 +4,7 @@ type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : neve
 type Fn = (...args: any) => any
 type Push<T extends any[], E> = [...T, E];
 
-type Obj<V = string, k = string> = Record<K,V>
+type Obj<V  = string , K extends string|number = string > = Record<K, V>
 
 type ActionReduceFn <T, R> = R extends null ? T : R & T
 
@@ -190,5 +190,5 @@ Keys extends [infer C, ...infer Rest]
       ? MergeCommit<Mutations, Rest, ActionReduceFn<(type: C, arg: Parameters<Mutations[C]>[1]) => void, R>>
       : never
     : R
-    
-type ActionContextInfer<Commit> = { commit: MergeCommit<Commit> }
+
+type ActionContextInfer<Commit extends Obj<Fn>> = { commit: MergeCommit<Commit> }

@@ -14,7 +14,7 @@ const store = createStore<RS>({
     modules
 })
 console.log(store.state.cart.product2.component.ee)
-export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<Modules>
+export const dispatch = store.dispatch as DispatchOverloadFunc<Modules>
 
 dispatch('cart/addProductToCart', {
     id: 2,
@@ -27,7 +27,7 @@ dispatch('products/getAllProducts').then(all => {
     console.log(all.map(prod => prod.title).join())
 })
 dispatch('products/getone', 1)
-export const dispatchDegenerate = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<Modules>
+export const dispatchDegenerate = store.dispatch as DispatchOverloadFuncDegenerate<Modules>
 dispatchDegenerate('cart/product2/component/assembly')
 
 export default store
