@@ -187,7 +187,7 @@ type Modules2RootState <T extends StateRequiredModule> = {
 type MergeCommit<Mutations extends Obj<Fn>, Keys = UnionToTuple<keyof Mutations>, R = null> =
 Keys extends [infer C, ...infer Rest]
     ? C extends keyof Mutations
-      ? MergeCommit<Mutations, Rest, ActionReduceFn<(type: C, arg: Parameters<Mutations[C]>[1]) => ReturnType<Mutations[C]>, R>>
+      ? MergeCommit<Mutations, Rest, ActionReduceFn<(type: C, arg: Parameters<Mutations[C]>[1]) => void, R>>
       : never
     : R
     
