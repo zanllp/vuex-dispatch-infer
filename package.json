@@ -1,6 +1,6 @@
 {
   "name": "vuex-dispatch-infer",
-  "version": "0.5.2",
+  "version": "0.5.4",
   "main": "index.js",
   "typings": "index.d.ts",
   "license": "MIT",
