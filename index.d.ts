@@ -1,4 +1,4 @@
-import { DispatchOptions, Module } from 'vuex'
+import { DispatchOptions } from 'vuex'
 
 type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : never
 type Fn = (...args: any) => any
@@ -48,12 +48,12 @@ type MapAction2ActionDesc<
                 : never
             : never
 
-export type RequiredModule = Obj<{ actions: Obj<Fn>, modules?: RequiredModule }>
+type RequiredModule = Obj<{ mutations: Obj<Fn>, actions: Obj<Fn>, modules?: RequiredModule }>
 
 /**
  * 将所有模块的action函数转成action的描述
  */
-export type GetModuleActions<T extends RequiredModule> =
+type GetModuleActions<T extends RequiredModule> =
 {
   [p in keyof T]:
     p extends string
@@ -78,7 +78,7 @@ type GetModuleActions2<T extends RequiredModule> =
  * @param T Store类型
  * @param keys Store里面所有module的key元组
  */
-export type MergeActions <
+type MergeActions <
     T extends Record<string,any>,
     Keys extends any[],
     R extends Fn | null = null
@@ -117,7 +117,7 @@ type UnionToTuple<T, L = LastOfUnion<T>, N = [T] extends [never] ? true : false>
  * 使用单个Store的类型生成Store::Dispatch的重载函数类型
  *
  * @example
- * export const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<S>
+ * const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<S>
  */
 type DispatchOverloadFunc<
     T extends RequiredModule,
@@ -128,13 +128,13 @@ type DispatchOverloadFunc<
 
 /*************************性能不足时的退化版本***********************************/
 
-type GetModuleActionsDegenerate<T extends RequiredModule> =
+type GetModuleActionsDegenerate<T extends RequiredModule , K extends 'actions'|'mutations'> =
 {
   [p in keyof T]: p extends string
     ? T[p]['modules'] extends infer NextModules
         ? NextModules extends RequiredModule
-            ? `${p}/${keyof T[p]['actions'] & string}` | `${p}/${DispatchActionsDegenerate<NextModules>}`
-            : `${p}/${keyof T[p]['actions'] & string}`
+            ? `${p}/${keyof T[p][K] & string}` | `${p}/${DispatchActionsDegenerate<NextModules>}`
+            : `${p}/${keyof T[p][K] & string}`
         : never
     : never
 }
@@ -154,11 +154,24 @@ Keys['length'] extends 0
       : never
     : R
 
+/**
+ * 获取所有actions字面量的联合
+ */
 type DispatchActionsDegenerate<
     T extends RequiredModule,
-    ModulesActions = GetModuleActionsDegenerate<T>,
+    ModulesActions = GetModuleActionsDegenerate<T, 'actions'>,
     ModuleKeyTuple = UnionToTuple<keyof T>
 > = ModuleKeyTuple extends any [] ? MergeActionsDegenerate<ModulesActions, ModuleKeyTuple>[number] : never
+
+/**
+ * 获取所有mutations字面量的联合
+ */
+type MutationsDegenerate<
+    T extends RequiredModule,
+    ModulesActions = GetModuleActionsDegenerate<T, 'mutations'>,
+    ModuleKeyTuple = UnionToTuple<keyof T>
+> = ModuleKeyTuple extends any [] ? MergeActionsDegenerate<ModulesActions, ModuleKeyTuple>[number] : never
+
 
 /**
  * 使用单个Store的类型生成Store::Dispatch的重载函数类型，支持无限推导
