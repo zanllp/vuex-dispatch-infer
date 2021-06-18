@@ -179,7 +179,7 @@ type MutationsDegenerate<
  * @example
  * const dispatch = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<S>
  */
-type DispatchOverloadFuncDegenerate<T extends RequiredModule> = (type: DispatchActionsDegenerate<T>, payload?: any) => any
+type DispatchOverloadFuncDegenerate<T extends RequiredModule> = (type: DispatchActionsDegenerate<T>, payload?: any) => Promise<any>
 
 type StateRequiredModule = Obj<{ modules?: RequiredModule, state?: any }>
 type Modules2RootState <T extends StateRequiredModule> = {
