@@ -43,18 +43,5 @@ export default {
   state,
   getters,
   actions,
-  mutations,
-  modules: {
-    component: {
-      namespaced: true,
-      state: {
-          ee: 1
-      },
-      actions: {
-        assembly(_: Action) {
-
-        }
-      }
-    }
-  }
+  mutations
 }

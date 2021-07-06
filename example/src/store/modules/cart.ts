@@ -95,9 +95,5 @@ export default {
   state,
   getters,
   actions,
-  mutations,
-  modules: {
-    product1: products,
-    product2: products
-  }
+  mutations
 }

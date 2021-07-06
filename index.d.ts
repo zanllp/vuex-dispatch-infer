@@ -11,65 +11,39 @@ type ActionReduceFn <T, R> = R extends null ? T : R & T
 type ForceAsync<T> = T extends Promise<any> ? T : Promise<T>
 
 type ActionFn <
-    ActionDegenerateralType,
     ParamsTypeTuple extends any[],
     ReturnType,
-    R = null,
-    Payload = ParamsTypeTuple['length'] extends 1 ? never : ParamsTypeTuple[1]
+    Payload = ParamsTypeTuple['length'] extends 1 ? undefined : ParamsTypeTuple[1]
   > =
   ParamsTypeTuple['length'] extends 1 // [ActionContext]
-    ? ActionReduceFn<(type: ActionDegenerateralType, payload?: undefined, options?: DispatchOptions ) => ForceAsync<ReturnType>, R>
+    ? (payload?: undefined, options?: DispatchOptions ) => ForceAsync<ReturnType>
     : ParamsTypeTuple[1] extends Exclude<Payload, undefined>
         // [ActionContext, string|number]
-        ? ActionReduceFn<(type: ActionDegenerateralType, payload: Payload, options?: DispatchOptions ) => ForceAsync<ReturnType>, R>
+        ? (payload: Payload, options?: DispatchOptions ) => ForceAsync<ReturnType>
         // [ActionContext, ?string|number]
-        : ActionReduceFn<(type: ActionDegenerateralType, payload?: Payload, options?: DispatchOptions ) => ForceAsync<ReturnType>, R>
+        : (payload?: Payload, options?: DispatchOptions ) => ForceAsync<ReturnType>
 /**
  * 映射Action函数到Action的描述
  */
-type MapAction2ActionDesc<
-    T extends Array<any>,
-    ModuleName extends string | number,
-    Actions extends Obj<Fn>,
-    Res extends Fn | null = null
-  > =
-  T['length'] extends 0
-    ? Res
-    : T['length'] extends 1
-        ? ActionFn<`${ModuleName}/${T[0]}`, Parameters<Actions[T[0]]>, ReturnType<Actions[T[0]]>, Res>
-        : T extends [infer C, ... infer Rest]
-            ? C extends keyof Actions
-                ? MapAction2ActionDesc<
-                    Rest,
-                    ModuleName,
-                    Actions,
-                    ActionFn<`${ModuleName}/${C & string}`, Parameters<Actions[C]>, ReturnType<Actions[C]>, Res>
-                  >
-                : never
-            : never
+type MapFn2FnDesc<
+    ModuleName extends string,
+    Actions extends Obj<Fn>
+> =
+{
+    [p in keyof Actions as `${ModuleName}/${p & string}`]: ActionFn<Parameters<Actions[p]>, ReturnType<Actions[p]>>
+}
 
-type RequiredModule = Obj<{ mutations: Obj<Fn>, actions: Obj<Fn>, modules?: RequiredModule }>
+type RequiredModule = Obj<{ mutations: Obj<Fn>, actions: Obj<Fn>, modules?: RequiredModule }, string>
 
 /**
  * 将所有模块的action函数转成action的描述
  */
-type GetModuleActions<T extends RequiredModule> =
+type GetModulesFnDict<
+    T extends RequiredModule,
+    KeyType extends 'mutations'|'actions' = 'actions'
+    > =
 {
-  [p in keyof T]:
-    p extends string
-      ? MapAction2ActionDesc<UnionToTuple<keyof T[p]['actions']>, p, T[p]['actions']>
-      : never
-}
-
-type GetModuleActions2<T extends RequiredModule> =
-{
-  [p in keyof T]: p extends string
-    ? T[p]['modules'] extends infer NextModules
-        ? NextModules extends RequiredModule
-            ? `${p}/${keyof T[p]['actions'] & string}` | `${p}/${DispatchActionsDegenerate<NextModules>}`
-            : MapAction2ActionDesc<UnionToTuple<keyof T[p]['actions']>, p, T[p]['actions']>
-        : never
-    : never
+  [p in keyof T]: MapFn2FnDesc<p & string, T[p][KeyType]>
 }
 
 /**
@@ -78,7 +52,7 @@ type GetModuleActions2<T extends RequiredModule> =
  * @param T Store类型
  * @param keys Store里面所有module的key元组
  */
-type MergeActions <
+type MergeModuleFn <
     T extends Record<string,any>,
     Keys extends any[],
     R extends Fn | null = null
@@ -91,7 +65,7 @@ type MergeActions <
             : R & T[Keys[0]]
         : Keys extends [infer C, ... infer Rest]
             ? C extends keyof T
-                ? MergeActions<T, Rest, R extends null ? T[C]: R & T[C]>
+                ? MergeModuleFn <T, Rest, R extends null ? T[C]: R & T[C]>
                 : never
             : never
 
@@ -113,73 +87,18 @@ type UnionToTuple<T, L = LastOfUnion<T>, N = [T] extends [never] ? true : false>
     ? []
     : Push<UnionToTuple<Exclude<T, L>>, L>
 
+
 /**
- * 使用单个Store的类型生成Store::Dispatch的重载函数类型
- *
- * @example
- * const dispatch = store.dispatch.bind(store) as DispatchOverloadFunc<S>
+ * 获取type到函数的字典
  */
-type DispatchOverloadFunc<
+type DispatchOverloadDict<
     T extends RequiredModule,
-    ModulesActions = GetModuleActions<T>,
+    KeyType extends 'mutations'|'actions',
+    ModulesFnDict = GetModulesFnDict<T, KeyType>,
     ModuleKeyTuple = UnionToTuple<keyof T>
-> = ModuleKeyTuple extends string[] ? MergeActions<ModulesActions, ModuleKeyTuple> : never
+> = ModuleKeyTuple extends string[] ? MergeModuleFn<ModulesFnDict, ModuleKeyTuple> : never
 
 
-/*************************性能不足时的退化版本***********************************/
-
-type GetModuleActionsDegenerate<T extends RequiredModule , K extends 'actions'|'mutations'> =
-{
-  [p in keyof T]: p extends string
-    ? T[p]['modules'] extends infer NextModules
-        ? NextModules extends RequiredModule
-            ? `${p}/${keyof T[p][K] & string}` | `${p}/${DispatchActionsDegenerate<NextModules>}`
-            : `${p}/${keyof T[p][K] & string}`
-        : never
-    : never
-}
-
-/**
- * 合并一个Stroe里面的所有module的action描述到一个数组
- *
- * @param T Store类型
- * @param keys Store里面所有module的key元组
- */
-type MergeActionsDegenerate <T extends Obj<any>, Keys extends any[], R extends string[] = []> =
-Keys['length'] extends 0
-  ? R
-  : Keys extends [infer C, ... infer Rest]
-    ? C extends keyof T
-      ? MergeActionsDegenerate<T, Rest, [...R, T[C]]>
-      : never
-    : R
-
-/**
- * 获取所有actions字面量的联合
- */
-type DispatchActionsDegenerate<
-    T extends RequiredModule,
-    ModulesActions = GetModuleActionsDegenerate<T, 'actions'>,
-    ModuleKeyTuple = UnionToTuple<keyof T>
-> = ModuleKeyTuple extends any [] ? MergeActionsDegenerate<ModulesActions, ModuleKeyTuple>[number] : never
-
-/**
- * 获取所有mutations字面量的联合
- */
-type MutationsDegenerate<
-    T extends RequiredModule,
-    ModulesActions = GetModuleActionsDegenerate<T, 'mutations'>,
-    ModuleKeyTuple = UnionToTuple<keyof T>
-> = ModuleKeyTuple extends any [] ? MergeActionsDegenerate<ModulesActions, ModuleKeyTuple>[number] : never
-
-
-/**
- * 使用单个Store的类型生成Store::Dispatch的重载函数类型，支持无限推导
- *
- * @example
- * const dispatch = store.dispatch.bind(store) as DispatchOverloadFuncDegenerate<S>
- */
-type DispatchOverloadFuncDegenerate<T extends RequiredModule> = (type: DispatchActionsDegenerate<T>, payload?: any) => Promise<any>
 
 type StateRequiredModule = Obj<{ modules?: RequiredModule, state?: any }>
 type Modules2RootState <T extends StateRequiredModule> = {

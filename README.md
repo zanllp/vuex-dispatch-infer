@@ -19,7 +19,8 @@ const store = createStore<RS>({
     modules
 })
 
-export const dispatch = store.dispatch as DispatchOverloadFunc<Modules>
+type ActionDict = DispatchOverloadDict<Modules, 'actions'>
+export const dispatch : <T extends keyof ActionDict> (type: T, ...args: Parameters<ActionDict[T]>) => ReturnType<ActionDict[T]> = store.dispatch as any
 
 dispatch('cart/addProductToCart', {
     id: 2,
@@ -32,22 +33,16 @@ dispatch('products/getAllProducts').then(all => {
     console.log(all.map(prod => prod.title).join())
 })
 dispatch('products/getone', 1)
-
-export const dispatchDegenerate = store.dispatch as DispatchOverloadFuncDegenerate<Modules>
-dispatchDegenerate('cart/product2/component/assembly')
-
 ```
 ### 实用类型
 可以为其他库提供一些类型上的支持
-使用MutationsDegenerate可以获取到所有mutations字面量的联合
+使用`keyof DispatchOverloadDict<Modules, 'mutations'>`可以获取到所有mutations字面量的联合
 ![image](https://user-images.githubusercontent.com/25872019/121627208-81bf1700-caa9-11eb-90e0-5d8f51c372dd.png)
-DispatchActionsDegenerate则是可以获取所有actions字面量的联合
+`keyof DispatchOverloadDict<Modules, 'actions'>`则是可以获取所有actions字面量的联合
 
 ## Preview
 ### Full feature
 ![image](https://user-images.githubusercontent.com/25872019/105982567-68a56300-60d2-11eb-955f-c9bcf4f21695.png)
-### Degenerate
-![image](https://user-images.githubusercontent.com/25872019/106233591-cef4c780-6231-11eb-9421-8ec36d046216.png)
 
 ### Commit
 ![image](https://user-images.githubusercontent.com/25872019/118070670-ecacfd80-b3d8-11eb-923b-2d338c6a12fa.png)
