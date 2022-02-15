@@ -10,6 +10,10 @@ type ActionReduceFn <T, R> = R extends null ? T : R & T
 
 type ForceAsync<T> = T extends Promise<any> ? T : Promise<T>
 
+type RestrictedKey = 'mutations'|'actions'
+
+type RestrictedStoreParams =  { modules: RequiredModule, mutations?: any, actions?: any, state?: any }
+
 type ActionFn <
     ParamsTypeTuple extends any[],
     ReturnType,
@@ -27,10 +31,11 @@ type ActionFn <
  */
 type MapFn2FnDesc<
     ModuleName extends string,
-    Actions extends Obj<Fn>
+    Actions extends Obj<Fn>,
+    Prefix = ModuleName extends '' ? '' : `${ModuleName}/`
 > =
 {
-    [p in keyof Actions as `${ModuleName}/${p & string}`]: ActionFn<Parameters<Actions[p]>, ReturnType<Actions[p]>>
+    [p in keyof Actions as `${Prefix & string}${p & string}`]: ActionFn<Parameters<Actions[p]>, ReturnType<Actions[p]>>
 }
 
 type RequiredModule = Obj<{ mutations: Obj<Fn>, actions: Obj<Fn>, modules?: RequiredModule }, string>
@@ -40,7 +45,7 @@ type RequiredModule = Obj<{ mutations: Obj<Fn>, actions: Obj<Fn>, modules?: Requ
  */
 type GetModulesFnDict<
     T extends RequiredModule,
-    KeyType extends 'mutations'|'actions' = 'actions'
+    KeyType extends RestrictedKey = 'actions'
     > =
 {
   [p in keyof T]: MapFn2FnDesc<p & string, T[p][KeyType]>
@@ -93,12 +98,22 @@ type UnionToTuple<T, L = LastOfUnion<T>, N = [T] extends [never] ? true : false>
  */
 type DispatchOverloadDict<
     T extends RequiredModule,
-    KeyType extends 'mutations'|'actions',
+    KeyType extends RestrictedKey,
     ModulesFnDict = GetModulesFnDict<T, KeyType>,
     ModuleKeyTuple = UnionToTuple<keyof T>
 > = ModuleKeyTuple extends string[] ? MergeModuleFn<ModulesFnDict, ModuleKeyTuple> : never
 
 
+type GetOverloadDict<
+    StoreParams extends RestrictedStoreParams,
+    KeyType extends RestrictedKey,
+> = DispatchOverloadDict<StoreParams['modules'], KeyType> & MapFn2FnDesc<'', StoreParams[KeyType]>
+
+type GetCommitOverload<T extends RestrictedStoreParams, MutationDict = GetOverloadDict<T, 'mutations'>> =
+  <T extends keyof MutationDict, fn = MutationDict[T]> (type: T, ...args: fn extends Fn ? Parameters<fn>: []) => void
+
+type GetDispatchOverload<T extends RestrictedStoreParams, ActionDict = GetOverloadDict<T, 'actions'>> =
+  <T extends keyof ActionDict, fn = ActionDict[T]>  (type: T,  ...args: fn extends Fn ? Parameters<fn>: []) => fn extends Fn ? ReturnType<fn> : never
 
 type StateRequiredModule = Obj<{ modules?: RequiredModule, state?: any }>
 type Modules2RootState <T extends StateRequiredModule> = {
@@ -115,6 +130,8 @@ type Modules2RootState <T extends StateRequiredModule> = {
                 : never)
       : never
 }
+
+type GetRootState <T extends RestrictedStoreParams> = Modules2RootState<T['modules']> & T['state']
 
 type MergeCommit<Mutations extends Obj<Fn>, Keys = UnionToTuple<keyof Mutations>, R = null> =
 Keys extends [infer C, ...infer Rest]
