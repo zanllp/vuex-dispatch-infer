@@ -113,7 +113,7 @@ type GetCommitOverload<T extends RestrictedStoreParams, MutationDict = GetOverlo
   <T extends keyof MutationDict, fn = MutationDict[T]> (type: T, ...args: fn extends Fn ? Parameters<fn>: []) => void
 
 type GetDispatchOverload<T extends RestrictedStoreParams, ActionDict = GetOverloadDict<T, 'actions'>> =
-  <T extends keyof ActionDict, fn = ActionDict[T]>  (type: T,  ...args: fn extends Fn ? Parameters<fn>: []) => ReturnType<fn>
+  <T extends keyof ActionDict, fn = ActionDict[T]>  (type: T,  ...args: fn extends Fn ? Parameters<fn>: []) => fn extends Fn ? ReturnType<fn> : never
 
 type StateRequiredModule = Obj<{ modules?: RequiredModule, state?: any }>
 type Modules2RootState <T extends StateRequiredModule> = {
