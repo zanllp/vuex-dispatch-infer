@@ -1,4 +1,4 @@
-import { DispatchOptions } from 'vuex'
+import { ActionContext, DispatchOptions } from 'vuex'
 
 type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : never
 type Fn = (...args: any) => any
@@ -113,7 +113,7 @@ type GetCommitOverload<T extends RestrictedStoreParams, MutationDict = GetOverlo
   <T extends keyof MutationDict, fn = MutationDict[T]> (type: T, ...args: fn extends Fn ? Parameters<fn>: []) => void
 
 type GetDispatchOverload<T extends RestrictedStoreParams, ActionDict = GetOverloadDict<T, 'actions'>> =
-  <T extends keyof ActionDict, fn = ActionDict[T]>  (type: T,  ...args: fn extends Fn ? Parameters<fn>: []) => fn extends Fn ? ReturnType<fn> : never
+  <T extends keyof ActionDict, fn = ActionDict[T]> (type: T,  ...args: fn extends Fn ? Parameters<fn>: []) => fn extends Fn ? ReturnType<fn> : never
 
 type StateRequiredModule = Obj<{ modules?: RequiredModule, state?: any }>
 type Modules2RootState <T extends StateRequiredModule> = {
@@ -133,11 +133,6 @@ type Modules2RootState <T extends StateRequiredModule> = {
 
 type GetRootState <T extends RestrictedStoreParams> = Modules2RootState<T['modules']> & T['state']
 
-type MergeCommit<Mutations extends Obj<Fn>, Keys = UnionToTuple<keyof Mutations>, R = null> =
-Keys extends [infer C, ...infer Rest]
-    ? C extends keyof Mutations
-      ? MergeCommit<Mutations, Rest, ActionReduceFn<(type: C, arg: Parameters<Mutations[C]>[1]) => void, R>>
-      : never
-    : R
-
-type ActionContextInfer<Commit extends Obj<Fn>> = { commit: MergeCommit<Commit> }
+type CommitStrict <Mutations extends Obj<Fn>> = <K extends keyof Mutations> (type: K, ...args: Shift<Parameters<Mutations[K]>>) => void
+type ActionContextInfer<Commit extends Obj<Fn>> = { commit: CommitStrict<Commit> }
+type StrictActionContext<State, Commit extends Obj<Fn>> = Omit<ActionContext<State, any>, 'commit'> & ActionContextInfer<Commit>
