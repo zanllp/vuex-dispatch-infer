@@ -1,5 +1,5 @@
 import { ActionContext, DispatchOptions } from 'vuex'
-
+// dd
 type Shift <T extends any[]> = T extends [infer _, ... infer Rest] ? Rest : never
 type Fn = (...args: any) => any
 type Push<T extends any[], E> = [...T, E];
