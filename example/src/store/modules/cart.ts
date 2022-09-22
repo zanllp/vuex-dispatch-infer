@@ -1,5 +1,4 @@
-import { ActionContext } from 'vuex'
-import { ActionContextInfer } from '../../../..'
+import { StrictActionContext } from '../../../..'
 import shop, { Product } from '../../api/shop'
 import products  from './products'
 
@@ -10,7 +9,7 @@ const state = () => ({
   checkoutStatus: null as null | string
 })
 type S = ReturnType<typeof state>
-type Action = ActionContext<S, any> & ActionContextInfer<typeof mutations>
+type Action = StrictActionContext<S, typeof mutations>
 // getters
 const getters = {
   cartProducts: (state: S, getters: any, rootState: any) => {
@@ -34,13 +33,13 @@ const getters = {
 
 // actions
 const actions = {
-    
+
    checkout ({ commit, state }: Action, products: Product) {
     const savedCartItems = [...state.items]
     commit('setCheckoutStatus', null)
     // empty cart
     commit('setCartItems', { items: [] })
-    
+
     shop.buyProducts(
       products,
       () => commit('setCheckoutStatus', 'successful'),
@@ -97,3 +96,4 @@ export default {
   actions,
   mutations
 }
+// hello
